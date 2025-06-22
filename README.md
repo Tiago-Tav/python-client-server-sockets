@@ -1,2 +1,2 @@
-# python-web-chat
-A chat website made in python
+# Python Sockets 
+A Python Client-Server setup using sockets
