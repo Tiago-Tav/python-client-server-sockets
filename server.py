@@ -1,43 +1,49 @@
-import socket as skt
+import socket
 import threading
 
 
-
-HOST = skt.gethostbyname(skt.gethostname())
+HOST = socket.gethostbyname(socket.gethostname())
 PORT = 6060
-ADDR = (HOST,PORT)
-HEADER = 64
-FORMAT = 'utf-8'
-DISCONNECT_MESSAGE = 'exit'
+ADRESS = (HOST, PORT)
+FORMAT = 'ascii'
+MESSAGESIZE = 1024
+DISCONNECTIONMESSAGE = '!exit'
 
-sv = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
-sv.bind(ADDR)
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind(ADRESS)
 
-connections = []
 
-def handle(conn, ADDR):
-    print(f"[NEW CONNECTION] {ADDR[0]}:{ADDR[1]} connected.")
+clients = []
+
+def broadcast(clients, message):
+    for client in clients:
+        client.send(message)
+    
+def handle(connection: socket.socket,adress):
     connected = True
-    connections.append(conn)
+    clients.append(connection)
     while connected:
-        msg_length = conn.recv(HEADER).decode(FORMAT)
-        if msg_length:
-            msg_length = int(msg_length)
-            msg = conn.recv(msg_length).decode(FORMAT)
-            if msg == DISCONNECT_MESSAGE:
+        try:
+            message = connection.recv(MESSAGESIZE)
+            if message == DISCONNECTIONMESSAGE:
                 connected = False
-            print(f"[{ADDR[0]}:{ADDR[1]}] {msg}")
-            
-    conn.close()
+            if message:
+                broadcast(clients, message)
+        except:
+            print(f'[SERVER MESSAGE] We Found an error, closing {adress} connection')
+            connected = False
+    clients.remove(connection)
+    connection.close()
+
 
 def start():
-    sv.listen()
-    print(f'[SERVER] listening on {HOST}')
+    server.listen()
+    print('[SERVER MESSAGE] server listening... ')
     while True:
-        conn, ADDR = sv.accept()
-        thread = threading.Thread(target=handle, args=(conn, ADDR))
+        connection, adress = server.accept()
+        thread = threading.Thread(target=handle, args=(connection,adress))
         thread.start()
-        print(f"[SERVER] Active connections: {threading.active_count() - 1}")
-
-print("[SERVER] starting...")
+        print(f'[SERVER MESSAGE] new connection detected! {connection}{adress}, is now welcome! total active connections: {threading.active_count() - 1}')
+    
+print('[SERVER MESSAGE] server starting... ')
 start()

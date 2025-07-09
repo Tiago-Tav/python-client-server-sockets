@@ -1,33 +1,44 @@
-import socket as skt
+import socket
+import threading
 
-HEADER = 64
-FORMAT = 'utf-8'
-DISCONNECT_MESSAGE = 'exit'
-SERVER = '192.168.56.1'
+HOST = '26.202.150.44' # Substitute with your desired hosted adress
 PORT = 6060
-ADDR = (SERVER, PORT)
+ADRESS = (HOST, PORT)
+FORMAT = 'ascii'
+MESSAGESIZE = 1024
+DISCONNECTIONMESSAGE = '!exit'
 
-cli = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
-cli.connect(ADDR)
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect(ADRESS)
 
-def user():
-    username = input('say your name: ')
+nickname = input('Say your name: ')
 
-def send(msg):
-    message = msg.encode(FORMAT)
-    msg_lenght = len(message)
-    send_lenght = str(msg_lenght).encode(FORMAT)
-    send_lenght += b' ' * (HEADER - len(send_lenght))
-    cli.send(send_lenght)
-    cli.send(message)
+def listen():
+    while True:
+        try:
+            message = client.recv(MESSAGESIZE).decode(FORMAT)
+            print(message)
+        except:
+            print('[CLIENT MESSAGE] Connection Closed')
+            client.close()
+            break
 
-def gateway():
-    connect = True
-    while connect:
-        msg = input("You: ")
-        if msg == DISCONNECT_MESSAGE:
-            connect = False
-        send(msg)
-    cli.close()
+def send(message: str):
+    if message == f'{nickname}: {DISCONNECTIONMESSAGE}':
+        message_encoded = 'An user left'.encode(FORMAT)
+        client.send(message_encoded)
+        client.close()
+    else:
+        message_encoded = message.encode(FORMAT)
+        client.send(message_encoded)
 
-gateway()
+def start():
+    thread = threading.Thread(target=listen)
+    thread.start()
+    print(f'[CLIENT MESSAGE] client is listening to {HOST}{PORT}...')
+    while True:
+        send_message = input(f'{nickname}:')
+        send(f'{nickname}: {send_message}')
+
+print(f'[CLIENT MESSAGE] client starting...')
+start()
